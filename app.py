@@ -1,6 +1,10 @@
 from flask import Flask, render_template, jsonify, request, Response
 from pymongo import MongoClient
 import cv2
+import torch
+import numpy as np
+from collections import deque
+from mmaction.apis.inferencers import MMAction2Inferencer
 
 app = Flask(__name__, template_folder='templates')  # 템플릿 폴더를 'templates'로 설정
 
@@ -8,6 +12,20 @@ app = Flask(__name__, template_folder='templates')  # 템플릿 폴더를 'templ
 client = MongoClient('mongodb://localhost:27017/')
 db = client['video_database']
 collection = db['videos']
+
+# AI 모델 로드
+config_path = "model/이상행동/tsm_imagenet-pretrained-r50_8xb16-1x1x8-100e_kinetics400-rgb.py"
+checkpoint_path = "model/이상행동/tsm_imagenet-pretrained-r50_8xb16-1x1x8-50e_kinetics400-rgb_20220831-64d69186.pth"
+
+model = MMAction2Inferencer(
+    rec=config_path,
+    rec_weights=checkpoint_path,
+    device="cuda:0",
+    input_format="array"
+)
+
+SEQUENCE_LENGTH = 1
+HYPER_VALUE_STEAL = 0.9  # 이상 행동 감지 임계값
 
 @app.route('/')
 def index():
@@ -28,20 +46,39 @@ def get_videos():
     ]
     return jsonify(video_list)
 
-# 비디오 스트림 생성기
+# 비디오 스트림 생성기 (AI 분석 적용)
 def generate_video_stream(camera_id=0):
-    # OpenCV를 사용하여 카메라 스트림 캡처
     cap = cv2.VideoCapture(camera_id)
+    frames = deque(maxlen=SEQUENCE_LENGTH)
+
     while True:
         success, frame = cap.read()
         if not success:
             break
-        # 프레임을 JPEG 형식으로 인코딩
+        
+        frames.append(frame)
+        if len(frames) != SEQUENCE_LENGTH:
+            continue  # 충분한 프레임이 쌓일 때까지 대기
+
+        # AI 모델 예측
+        results = model(inputs=np.array(frames))
+        _, preds_steal = results["predictions"][0]["rec_scores"][0]
+
+        # 프레임에 예측 결과 추가
+        text = f"Steal Probability: {round(preds_steal, 4)}"
+        color = (0, 255, 0) if preds_steal < HYPER_VALUE_STEAL else (0, 0, 255)
+        cv2.putText(frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+
+        if preds_steal > HYPER_VALUE_STEAL:
+            cv2.putText(frame, "⚠️ Action Detected!", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
+
         _, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
-        # 멀티파트 응답 생성
+        
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+    cap.release()
 
 # 실시간 카메라 스트림을 위한 엔드포인트
 @app.route('/video_feed')
