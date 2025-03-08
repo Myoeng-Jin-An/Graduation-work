@@ -1,2 +1,4 @@
 *.pth filter=lfs diff=lfs merge=lfs -text
 *.zip filter=lfs diff=lfs merge=lfs -text
+best_acc_top1_epoch_8.pth filter=lfs diff=lfs merge=lfs -text
+tsm_imagenet-pretrained-r50_8xb16-1x1x8-50e_kinetics400-rgb_20220831-64d69186.pth filter=lfs diff=lfs merge=lfs -text
