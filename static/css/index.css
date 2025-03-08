@@ -3,6 +3,10 @@ body {
     margin: 0;
     padding: 0;
     background-color: #f4f4f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
 
 nav {
@@ -13,24 +17,10 @@ nav {
 }
 
 .video-table {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 20px;
-}
-
-.video-row {
-    display: flex;
-    justify-content: space-between;
-}
-
-.video-cell {
-    background-color: white;
-    padding: 10px;
+    width: 80%; /* 테이블 크기를 전체의 80%로 설정 */
+    margin: auto;
+    border-collapse: collapse;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    border-radius: 5px;
-    width: 48%; /* 두 개의 비디오가 한 줄에 들어가도록 설정 */
-    text-align: center;
 }
 
 .video-frame {
@@ -40,9 +30,8 @@ nav {
     border-radius: 5px;
 }
 
-
 nav button {
-    background-color: #007bff; /* 파란색 배경 */
+    background-color: #007bff;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -53,5 +42,5 @@ nav button {
 }
 
 nav button:hover {
-    background-color: #0056b3; /* 호버 시 더 진한 파란색 */
+    background-color: #0056b3;
 }

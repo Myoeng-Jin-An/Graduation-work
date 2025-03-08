@@ -4,31 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>실시간 비디오 스트리밍</title>
-    <link rel="stylesheet" href="css/index.css"> <!-- CSS 경로 -->
+    <!-- 외부 CSS 파일 불러오기 -->
+    <link rel="stylesheet" href="/static/css/index.css">
 </head>
 <body>
+    <!-- 네비게이션 바 -->
     <nav>
         <button id="navigateButton">기록된 영상 가기</button>
     </nav>
+    <!-- 비디오 테이블 -->
     <table class="video-table">
         <tr>
             <td>1번 카메라</td>
             <td>2번 카메라</td>
         </tr>
         <tr>
-            <td><iframe class="video-frame" src="video_stream_1_url"></iframe></td>
-            <td><iframe class="video-frame" src="video_stream_2_url"></iframe></td>
+            <td>
+                <!-- Flask 스트림을 표시 -->
+                <img src="/video_feed?camera_id=0" class="video-frame">
+            </td>
+            <td>
+                <img src="/video_feed?camera_id=1" class="video-frame">
+            </td>
         </tr>
         <tr>
             <td>3번 카메라</td>
             <td>4번 카메라</td>
         </tr>
         <tr>
-            <td><iframe class="video-frame" src="video_stream_3_url"></iframe></td>
-            <td><iframe class="video-frame" src="video_stream_4_url"></iframe></td>
+            <td>
+                <img src="/video_feed?camera_id=2" class="video-frame">
+            </td>
+            <td>
+                <img src="/video_feed?camera_id=3" class="video-frame">
+            </td>
         </tr>
     </table>
-    <script src="js/index.js"></script> <!-- JS 경로 -->
+    <!-- 외부 JavaScript 파일 불러오기 -->
+    <script src="/static/js/index.js"></script>
 </body>
-
 </html>
