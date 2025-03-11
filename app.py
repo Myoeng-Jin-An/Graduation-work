@@ -13,13 +13,24 @@ client = MongoClient('mongodb://localhost:27017/')
 db = client['video_database']
 collection = db['videos']
 
-# AI 모델 로드
-config_path = "model/이상행동/tsm_imagenet-pretrained-r50_8xb16-1x1x8-100e_kinetics400-rgb.py"
-checkpoint_path = "model/이상행동/tsm_imagenet-pretrained-r50_8xb16-1x1x8-50e_kinetics400-rgb_20220831-64d69186.pth"
+# 이상행동 AI 모델 로드
+config_path_abnormal = "model/이상행동/tsm_imagenet-pretrained-r50_8xb16-1x1x8-100e_kinetics400-rgb.py"
+checkpoint_path_abnormal = "model/이상행동/tsm_imagenet-pretrained-r50_8xb16-1x1x8-50e_kinetics400-rgb_20220831-64d69186.pth"
 
-model = MMAction2Inferencer(
-    rec=config_path,
-    rec_weights=checkpoint_path,
+model_abnormal = MMAction2Inferencer(
+    rec=config_path_abnormal,
+    rec_weights=checkpoint_path_abnormal,
+    device="cuda:0",
+    input_format="array"
+)
+
+# 구매행동 AI 모델 로드
+config_path_purchase = "model/구매행동/tsm_imagenet-pretrained-r50_8xb16-1x1x8-100e_kinetics400-rgb.py"
+checkpoint_path_purchase = "model/구매행동/best_acc_top1_epoch_8.pth"
+
+model_purchase = MMAction2Inferencer(
+    rec=config_path_purchase,
+    rec_weights=checkpoint_path_purchase,
     device="cuda:0",
     input_format="array"
 )
@@ -60,17 +71,28 @@ def generate_video_stream(camera_id=0):
         if len(frames) != SEQUENCE_LENGTH:
             continue  # 충분한 프레임이 쌓일 때까지 대기
 
-        # AI 모델 예측
-        results = model(inputs=np.array(frames))
-        _, preds_steal = results["predictions"][0]["rec_scores"][0]
+        # 이상행동 AI 모델 예측
+        results_abnormal = model_abnormal(inputs=np.array(frames))
+        _, preds_steal = results_abnormal["predictions"][0]["rec_scores"][0]
+
+        # 구매행동 AI 모델 예측
+        results_purchase = model_purchase(inputs=np.array(frames))
+        _, preds_purchase = results_purchase["predictions"][0]["rec_scores"][0]
 
         # 프레임에 예측 결과 추가
-        text = f"Steal Probability: {round(preds_steal, 4)}"
-        color = (0, 255, 0) if preds_steal < HYPER_VALUE_STEAL else (0, 0, 255)
-        cv2.putText(frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+        text_abnormal = f"Steal Probability: {round(preds_steal, 4)}"
+        color_abnormal = (0, 255, 0) if preds_steal < HYPER_VALUE_STEAL else (0, 0, 255)
+        cv2.putText(frame, text_abnormal, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, color_abnormal, 2)
+
+        text_purchase = f"Purchase Probability: {round(preds_purchase, 4)}"
+        color_purchase = (0, 255, 0) if preds_purchase < 0.5 else (0, 0, 255)  # 임의의 임계값 사용
+        cv2.putText(frame, text_purchase, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, color_purchase, 2)
 
         if preds_steal > HYPER_VALUE_STEAL:
-            cv2.putText(frame, "⚠️ Action Detected!", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
+            cv2.putText(frame, "⚠️ Abnormal Action Detected!", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
+        
+        if preds_purchase > 0.5:  # 임의의 임계값 사용
+            cv2.putText(frame, "✔️ Purchase Action Detected!", (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
 
         _, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
